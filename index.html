@@ -1,1 +1,25 @@
-
+<div id="name-generator-box">
+  <h3>Name Number Generator</h3>
+  <input type="text" id="username" placeholder="Enter a name">
+  <button onclick="generateNumber()">Generate</button>
+  <p>Result: <span id="output">--</span></p>
+</div>
+<script>
+function generateNumber() {
+  const name = document.getElementById("username").value.trim();
+  if (!name) {
+    document.getElementById("output").innerText = "Please enter a name";
+    return;
+  }
+  
+  // Convert name characters to a consistent number hash
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Turn hash into a positive number between 1 and 100
+  const finalNumber = Math.abs(hash % 10) + 1;
+  document.getElementById("output").innerText = finalNumber;
+}
+</script>
