@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title id="ttl">Investment Lab</title>
+<style>
+:root{--bg:#fff;--panel:#f8fafc;--text:#111827;--border:#1f2937;--primary:#0b57d0;--field:#fff;--doc:#fffbe6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f172a;--panel:#1e293b;--text:#f1f5f9;--border:#9ca3af;--primary:#1e3a8a;--field:#0f172a;--doc:#1c1917}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;line-height:1.5;background:var(--bg);color:var(--text)}
+header{background:var(--primary);color:#fff;padding:1.25rem}
+h1,h2,h3{margin:0 0 .5rem}
+main{max-width:900px;margin:auto;padding:1rem}
+section{border:2px solid var(--border);border-radius:8px;background:var(--panel);padding:1rem;margin-bottom:1.25rem}
+label{font-weight:bold;display:block;margin-bottom:.25rem}
+input,select,textarea{padding:.45rem;border:2px solid var(--border);border-radius:4px;font-size:1rem;background:var(--field);color:var(--text);width:100%;max-width:320px}
+textarea{max-width:100%;font-family:monospace}
+button{padding:.5rem .9rem;font-size:1rem;font-weight:bold;border:2px solid var(--border);border-radius:4px;background:var(--primary);color:#fff;cursor:pointer;margin:.4rem .4rem 0 0}
+button.alt{background:var(--field);color:var(--text)}
+input:focus,select:focus,textarea:focus,button:focus{outline:4px solid #ffbf47;outline-offset:2px}
+.doc{margin-top:.6rem;padding:.75rem;border:2px dashed var(--border);background:var(--doc)}
+.doc dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem}
+.doc dt{font-weight:bold}.doc dd{margin:0}
+.row{display:flex;flex-wrap:wrap;gap:1rem}
+.row>div{flex:1 1 200px}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{border:2px solid var(--border);padding:.3rem .5rem;text-align:left}
+[hidden]{display:none!important}
+.fld input,.fld select{max-width:180px}.err{color:#842029;font-weight:bold}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .err{color:#fca5a5}}
+code.big{display:inline-block;padding:.3rem .6rem;border:2px dashed var(--border);background:var(--bg);font-size:1.2rem;letter-spacing:.1em}
+td.n,th.n{text-align:right}
+.radio label{font-weight:normal;display:inline-flex;gap:.4rem;margin-right:1rem;align-items:center}.radio input{width:auto}
+fieldset.radio{border:2px solid var(--border);padding:.5rem .75rem}
+@media (min-width:900px){.cols.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}.cols.two>section{margin-bottom:1.25rem}}
+</style></head><body>
+<header><h1 id="h1">Investment Lab</h1></header>
+<main>
+<section id="start"><h2>Start</h2>
+<p>Enter the version code shown in your exercise question.</p>
+<label for="vc">Version code</label><input id="vc" autocomplete="off">
+<br><button id="go" type="button">Begin</button><div id="startMsg" class="err" aria-live="polite"></div></section>
+<div id="work" hidden>
+<section><h2>Your Task</h2><p id="intro"></p><p>This lab produces the numbers your exercise asks for. It does not tell you whether your inputs are right: the calculator computes from exactly what you enter, so use the documents carefully. Your exercise questions say which results to input.</p></section>
+
+<div class="cols" id="cols"><section><h2>1. Documents</h2>
+<p>Each button opens one document. Only one is displayed at a time. Facts appear only after you open a document.</p>
+<button type="button" class="alt" id="bPro">Open</button>
+<button type="button" class="alt" id="bConf">Open</button>
+<button type="button" class="alt" id="bQuote" disabled>Request</button>
+<div class="doc" id="doc" hidden aria-live="polite"></div></section>
+
+<section><h2>2. Schedule Calculator</h2>
+<p>Enter the facts from the documents, then click the button to generate an amortization schedule.</p>
+<div class="row fld" id="fields"></div>
+<button type="button" id="run">Generate amortization schedule</button>
+<div id="runMsg" class="err" aria-live="polite"></div>
+<div id="eng" hidden aria-live="polite">
+<h3 style="margin-top:1rem">Calculator Output</h3>
+<p>Bond purchased at a <strong id="oPd"></strong> of <strong id="oAmt"></strong>.</p>
+<div class="wrap"><table><caption style="text-align:left;font-weight:bold">Amortization schedule</caption>
+<thead><tr><th scope="col">Period</th><th scope="col" class="n">Cash interest</th><th scope="col" class="n">Interest revenue</th><th scope="col" class="n">Amortization</th><th scope="col" class="n">Amortized cost, end of period</th></tr></thead><tbody id="oRows"></tbody></table></div>
+<p style="margin-top:.75rem">Completion code: <code class="big" id="oSeal"></code></p>
+</div></section>
+
+</div>
+<section id="cls" hidden><h2>3. Classification Viewer</h2>
+<p>See how the December 31 balance sheet and income reporting change by classification. Your questions may ask about more than one.</p>
+<div id="clsCtl"></div>
+<button type="button" id="cShow">Show</button>
+<div class="doc" id="cOut" hidden aria-live="polite"></div></section>
+</div>
+</main>
+<script>
+const CODES=Array.from({length:30},(_,i)=>String(i+1));
+const V=[[340,6,9,300,316],[350,10,7,400,326],[360,8,11,300,336],[370,12,9,400,346],[380,10,13,340,356],[390,14,11,440,366],[400,12,15,340,376],[410,16,13,440,386],[420,6,9,380,396],[430,10,7,480,406],[440,8,11,380,416],[450,12,9,480,426],[460,10,13,420,436],[470,14,11,520,446],[480,5,8,420,456],[490,9,6,520,466],[500,7,10,460,476],[510,11,8,560,486],[520,9,12,460,496],[530,13,10,560,506],[540,4,7,500,516],[550,8,5,600,526],[560,6,9,500,536],[570,10,7,600,546],[580,8,11,540,556],[590,12,9,640,566],[600,10,13,540,576],[610,14,11,640,586],[620,12,15,580,596],[630,16,13,680,606]];
+const SALT="change-me-before-use";
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+const $=id=>document.getElementById(id);
+const money=v=>v.toLocaleString(undefined,{style:"currency",currency:"USD"});
+function engine(face,st,mk,price,fv){
+const fc=Math.round(face*100),pc=Math.round(price*100),cash=Math.round(fc*st/200);
+const prem=pc>fc,rd=n=>Math.floor((n+100+1e-7)/200);
+const step=c=>{const i=rd(c*mk),a=prem?cash-i:i-cash,e=prem?c-a:c+a;return{int:i,am:a,end:e}};
+const ps=[];let c=pc;for(let k=0;k<4;k++){const s=step(c);ps.push(s);c=s.end}
+const d=x=>x/100,fvc=Math.round(fv*100),adj=fvc-ps[1].end;
+return{disc:pc>fc?"Premium":pc<fc?"Discount":"Par",amt:d(Math.abs(pc-fc)),
+rows:ps.map(s=>({cash:d(cash),int:d(s.int),am:d(s.am),end:d(s.end)})),
+htm:d(ps[1].end),fv:d(fvc),adj:d(adj)};
+}
+function seal(face,st,mk,price,fv){const s=[face,st,mk,price,fv].map(n=>Number(n).toFixed(2)).join("|");return(hash(s+SALT)+hash(SALT+s)).toUpperCase().slice(0,6)}
+function ver(code){const i=CODES.indexOf(String(code).trim().toLowerCase());if(i<0)return null;
+const [face,st,mk,price,fv]=V[i];return{code:CODES[i],face,st,mk,price,fv,decoy:mk+(i%2?2:-2),E:engine(face,st,mk,price,fv),seal:seal(face,st,mk,price,fv)}}
+function rng2(seed){let a=parseInt(hash(seed),36)>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function skin(code){
+const r=rng2(code+"|skin"),pick=a=>a[Math.floor(r()*a.length)];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const co="ABC Corporation";
+return{co,accent:pick(["#0b57d0","#7a1f5c","#0f5132","#8a3b00","#3a3a8c","#00606b"]),
+font:pick(["Arial, Helvetica, sans-serif","Georgia, 'Times New Roman', serif","Verdana, Geneva, sans-serif","'Trebuchet MS', Arial, sans-serif"]),
+docStyle:Math.floor(r()*3),layout:Math.floor(r()*2),radio:r()<0.5,intro:Math.floor(r()*3),
+lab:{pro:pick(["bond prospectus","term sheet","offering circular"]),conf:pick(["purchase confirmation","broker trade ticket","settlement notice"]),quote:pick(["December 31 market quote","year-end pricing report","closing price sheet"])},
+lblSt:pick(["Stated rate (% per year)","Coupon rate (% per year)","Nominal interest rate (% per year)"]),
+lblMk:pick(["Market rate on issue date (% per year)","Market rate on issue date (% per year)","Market rate on issue date (% per year)"]),
+order:shuf(["Face","St","Mk","Pr","Fv"]),docOrder:[shuf([0,1,2]),shuf([0,1]),shuf([0,1])]};
+}
+let D,E=null,S;
+const PL=["1 (June 30, Year 1)","2 (December 31, Year 1)","3 (June 30, Year 2)","4 (December 31, Year 2)"];
+const dl=a=>"<dl>"+a.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join("")+"</dl>";
+const m2=x=>x.toFixed(2);
+const sg=x=>(x>=0?"Gain ":"Loss ")+money(Math.abs(x));
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function renderDoc(title,facts,order){
+const f=order.map(i=>facts[i]).concat(facts.slice(order.length));
+let h=`<h3>${cap(title)}</h3>`;
+if(S.docStyle===0)h+="<p>"+f.map(x=>`${x[0]}: <strong>${x[1]}</strong>`).join(". ")+".</p>";
+else if(S.docStyle===1)h+=dl(f);
+else h+="<table><tbody>"+f.map(x=>`<tr><th scope="row">${x[0]}</th><td>${x[1]}</td></tr>`).join("")+"</tbody></table>";
+$("doc").innerHTML=h;$("doc").hidden=false;
+}
+$("go").onclick=()=>{D=ver($("vc").value);
+if(!D){$("startMsg").textContent="Version code not recognized. Check your exercise question.";return}
+S=skin(D.code);
+const root=document.documentElement.style;root.setProperty("--primary",S.accent);
+document.body.style.fontFamily=S.font;
+$("h1").textContent="Investment Lab";$("ttl").textContent="Investment Lab";
+$("intro").textContent=[
+S.co+" bought a bond on January 1, Year 1 and will hold it as an investment. Interest is paid semiannually on June 30 and December 31, and the company uses the effective-interest method.",
+"On January 1, Year 1, the treasury team at "+S.co+" purchased a corporate bond. The bond pays interest every six months, on June 30 and December 31. "+S.co+" amortizes any premium or discount using the effective-interest method.",
+S.co+" invested in a bond on January 1, Year 1. Cash interest is received twice a year (June 30 and December 31), and the accounting department uses the effective-interest method."][S.intro];
+$("bPro").textContent="Open "+S.lab.pro;$("bConf").textContent="Open "+S.lab.conf;$("bQuote").textContent="Request "+S.lab.quote;
+const F={Face:["eFace","Face value ($)"],St:["eSt",S.lblSt],Mk:["eMk",S.lblMk],Pr:["ePr","Price paid ($)"],Fv:["eFv","Fair value at December 31, Year 1 ($)"]};
+$("fields").innerHTML=S.order.map(k=>`<div><label for="${F[k][0]}">${F[k][1]}</label><input id="${F[k][0]}" type="number" step="0.01"></div>`).join("");
+$("cols").classList.toggle("two",S.layout===1);
+$("clsCtl").innerHTML=S.radio?`<fieldset class="radio"><legend>Classification</legend><label><input type="radio" name="cls" value="HTM"> Held-to-maturity</label><label><input type="radio" name="cls" value="AFS"> Available-for-sale</label><label><input type="radio" name="cls" value="TRD"> Trading</label></fieldset>`:`<label for="cSel">Classification</label><select id="cSel"><option value="">Select...</option><option value="HTM">Held-to-maturity</option><option value="AFS">Available-for-sale</option><option value="TRD">Trading</option></select>`;
+$("start").hidden=true;$("work").hidden=false};
+$("bPro").onclick=()=>renderDoc(S.lab.pro,[["Issue","Corporate bond"],["Purchased","January 1, Year 1"],["Face value",money(D.face)],["Stated (coupon) rate",D.st+"% per year"],["Interest dates","June 30 and December 31 each year"]],[...S.docOrder[0].map(i=>[2,3,4][i]),0,1]);
+$("bConf").onclick=()=>{$("bQuote").disabled=false;renderDoc(S.lab.conf,[["Settlement","January 1, Year 1"],["Amount paid",money(D.price)],["Market rate on issue date",D.mk+"% per year"]],[...S.docOrder[1].map(i=>[1,2][i]),0])};
+$("bQuote").onclick=()=>renderDoc(S.lab.quote,[["Fair value of the bond at December 31, Year 1",money(D.fv)],["Current market rate at December 31, Year 1",D.decoy+"% per year"],["Note","Quotes are informational and do not change the rate used to compute interest revenue."]],[...S.docOrder[2],2]);
+$("run").onclick=()=>{
+const v=["eFace","eSt","eMk","ePr","eFv"].map(id=>parseFloat($(id).value));
+if(v.some(x=>!isFinite(x))||v[0]<=0||v[3]<=0||v[2]<=0){$("runMsg").textContent="Enter all five facts as positive numbers.";return}
+$("runMsg").textContent="";
+E=engine(...v);
+$("oPd").textContent=E.disc;$("oAmt").textContent=money(E.amt);
+$("oRows").innerHTML=E.rows.map((r,i)=>`<tr><td>${PL[i]}</td><td class="n">${m2(r.cash)}</td><td class="n">${m2(r.int)}</td><td class="n">${m2(r.am)}</td><td class="n">${m2(r.end)}</td></tr>`).join("");
+$("oSeal").textContent=seal(...v);
+$("eng").hidden=false;$("cls").hidden=false;$("cOut").hidden=true;
+};
+$("cShow").onclick=()=>{
+const sel=$("cSel"),chk=document.querySelector('input[name="cls"]:checked');
+const c=sel?sel.value:(chk?chk.value:"");if(!c||!E)return;
+const names={HTM:"Held-to-maturity",AFS:"Available-for-sale",TRD:"Trading"};
+let rows;
+if(c==="HTM")rows=[["Carrying amount at December 31, Year 1 (end of Period 2)",money(E.htm)],["Fair value adjustment","None. HTM is carried at amortized cost."],["Reported in","Balance sheet at amortized cost"]];
+else if(c==="AFS")rows=[["Carrying amount at December 31, Year 1 (end of Period 2)",money(E.fv)],["Unrealized holding gain (loss)",sg(E.adj)],["Reported in","Other comprehensive income"]];
+else rows=[["Carrying amount at December 31, Year 1 (end of Period 2)",money(E.fv)],["Unrealized holding gain (loss)",sg(E.adj)],["Reported in","Net income"]];
+$("cOut").innerHTML=`<h3>${names[c]}</h3>`+dl(rows);$("cOut").hidden=false;
+};
+</script></body></html>
