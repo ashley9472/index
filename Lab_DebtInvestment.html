@@ -38,10 +38,126 @@ td.n,th.n{text-align:right}
 .radio label{font-weight:normal;display:inline-flex;gap:.3rem;margin-right:.75rem;align-items:center}.radio input{width:auto}
 fieldset.radio{border:1px solid var(--border);padding:.3rem .6rem;margin:0}
 @media (min-width:900px){.cols.two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;align-items:start}.cols.two>section{margin-bottom:.6rem}}
-.doc ul{margin:.2rem 0;padding-left:1.2rem}#qHint{font-size:.9em;margin:.3rem 0 0}
+.doc ul{margin:.2rem 0;padding-left:1.2rem}#pBtns button[aria-pressed="true"]{background:var(--primary);color:#fff}#qHint{font-size:.9em;margin:.3rem 0 0}
+#doc{-webkit-user-select:none;user-select:none}@media print{#doc{display:none!important}}
 </style></head><body>
 <header><h1 id="h1">Investment Lab</h1></header>
 <main>
 <section id="start"><h2>Start</h2>
 <p>Enter the code shown in your exercise question.</p>
-<label for="vc">Enter code
+<label for="vc">Enter code below</label><input id="vc" autocomplete="off">
+<br><button id="go" type="button">Begin</button><div id="startMsg" class="err" aria-live="polite"></div></section>
+<div id="work" hidden>
+<section><h2>Your Task</h2><p id="intro"></p><p>This lab produces the numbers your exercise asks for. It does not tell you whether your inputs are right: the calculator computes from exactly what you enter, so use the documents carefully. Your exercise questions say which results to input.</p></section>
+
+<div class="cols" id="cols"><section><h2>1. Documents</h2>
+<p>Each button opens one document. Only one is displayed at a time, and it closes if you switch to another tab or window. Facts appear only after you open a document.</p>
+<div id="btnRow"><button type="button" class="alt" id="bPro">Open bond prospectus</button>
+<button type="button" class="alt" id="bConf">Open purchase confirmation</button>
+<button type="button" class="alt" id="bQuote" disabled>Request December 31 market quote</button></div>
+<p id="qHint">The market quote becomes available after you open the purchase confirmation.</p>
+<div class="doc" id="doc" hidden aria-live="polite"></div></section>
+
+<section><h2>2. Schedule Calculator</h2>
+<p>Enter the facts from the documents, then click the button to generate an amortization schedule.</p>
+<div class="row fld" id="fields"></div>
+<button type="button" id="run">Generate amortization schedule</button>
+<div id="runMsg" class="err" aria-live="polite"></div>
+<div id="factsBar" hidden><p>The facts you entered are hidden.</p><button type="button" class="alt" id="editFacts">Show or edit facts</button></div>
+<div id="eng" hidden aria-live="polite">
+<h3 style="margin-top:.6rem">Calculator Output</h3>
+<p>Bond purchased at a <strong id="oPd"></strong> of <strong id="oAmt"></strong>.</p>
+<div id="pBtns" role="group" aria-label="Choose a period to view"></div>
+<p id="pHint">Select a period to view its row of the amortization schedule. One period is shown at a time.</p>
+<div class="wrap" id="pWrap" hidden><table><caption style="text-align:left;font-weight:bold">Amortization schedule</caption>
+<thead><tr><th scope="col">Period</th><th scope="col" class="n">Cash interest</th><th scope="col" class="n">Interest revenue</th><th scope="col" class="n">Amortization</th><th scope="col" class="n">Amortized cost, end of period</th></tr></thead><tbody id="oRows"></tbody></table></div>
+<p style="margin-top:.5rem">Completion code: <code class="big" id="oSeal"></code></p>
+</div></section>
+
+</div>
+</div>
+</main>
+<script>
+const CODES=["3847","1882","9937","3962","4312","6399","4963","2426","1358","6348","4996","2754","6965","3635","2498","2862","8967","1814","5618","2572","5975","9124","3852","4261","9477","2741","3241","5243","5445","1636"];
+const DK="lab-data-key";
+const B=["rlH7DIUgr8mhySaZ3LBTw2E=","JSJt2+ZslBvRVcdQKaoMnlOP","TLcLmucA3W9OwG/fsjkjkACU","qFMuthOdV/6y1MSzJoUP+1So","VknfZO0fqyRE0VIibNvmbpEBuw==","D9RDPSSqGu2NflnWe4wFpTVGUA==","jHDNWqfJgzIOmbAc9mV80EE/aQ==","errKWEHrcZi4xTaZwLfiUpAN3w==","wx+MYchBJqQsoLned/v0DPo=","bf0jk64kbMP5Tc9QEaJzhFuH","dKhh8s9oJUf2GPdv2lFMOqhs","MuJ2gJkTvdA4Qiad3FPya5Zu","yDSPFvN9NV4aq7wXhHnwWzGjdQ==","S5cB+XDetjmZCkXjcYCZFrvKXA==","Pc14455woCfSpVnovcqCEoA=","dq4+RM13lx65N6wBVD/cS5k=","5BnVYl/XtTdn6CCRCuH8bNjc","hHk0Qr8xiApPyAHxasHcQzj8","Fo8VpC1X93mHDgrnKIe+JFKq","qFUqthOdVv66yNy2IJkQ+lLD1Q==","tm/zBI06V9959+5BlH4bi1k=","1MmAEm+IReMLohSHZujqXaM=","xDnzAn/2Vd8bkUQ3thgbjRM=","dfQ/q1Y8ZMuhBVXgudqaKOMf","iVCUD6ohTMJb0foIxU62xZ9L","aJVg9lPdlz7yFIZ35kXJuRTo","kgCTIDmz33BQ/V4weO8KjDelVw==","WljqeGGLE7hY59a74FeCdLAtPw==","smDxABmTPVCw274QVM9q7BmFdw==","VkzUZO0frSRE0VInYNvma5QBuw=="];
+const SALT="change-me-before-use";
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function dec(code,b){const t=atob(b);let o="";for(let j=0;j<t.length;j++)o+=String.fromCharCode(t.charCodeAt(j)^(parseInt(hash(code+"|"+DK+"|"+j),36)&255));return JSON.parse(o)}
+const $=id=>document.getElementById(id);
+const money=v=>v.toLocaleString(undefined,{style:"currency",currency:"USD"});
+function engine(face,st,mk,price,fv){
+const fc=Math.round(face*100),pc=Math.round(price*100),cash=Math.round(fc*st/200);
+const prem=pc>fc,rd=n=>Math.floor((n+100+1e-7)/200);
+const step=c=>{const i=rd(c*mk),a=prem?cash-i:i-cash,e=prem?c-a:c+a;return{int:i,am:a,end:e}};
+const ps=[];let c=pc;for(let k=0;k<4;k++){const s=step(c);ps.push(s);c=s.end}
+const d=x=>x/100,fvc=Math.round(fv*100),adj=fvc-ps[0].end;
+return{disc:pc>fc?"Premium":pc<fc?"Discount":"Par",amt:d(Math.abs(pc-fc)),
+rows:ps.map(s=>({cash:d(cash),int:d(s.int),am:d(s.am),end:d(s.end)})),
+htm:d(ps[0].end),fv:d(fvc),adj:d(adj)};
+}
+function seal(face,st,mk,price,fv){const s=[face,st,mk,price,fv].map(n=>Number(n).toFixed(2)).join("|");return(hash(s+SALT)+hash(SALT+s)).toUpperCase().slice(0,6)}
+function ver(code){const i=CODES.indexOf(String(code).trim().toLowerCase());if(i<0)return null;
+const [face,st,mk,price,fv]=dec(CODES[i],B[i]);return{code:CODES[i],face,st,mk,price,fv,decoy:mk+(i%2?2:-2),E:engine(face,st,mk,price,fv),seal:seal(face,st,mk,price,fv)}}
+function rng2(seed){let a=parseInt(hash(seed),36)>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const PERMS=[["pro","conf","quote"],["conf","pro","quote"]];
+function skin(code){
+const r=rng2(code+"|skin"),pick=a=>a[Math.floor(r()*a.length)];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const co="ABC Corporation",IDX=CODES.indexOf(code);
+return{co,accent:pick(["#0b57d0","#7a1f5c","#0f5132","#8a3b00","#3a3a8c","#00606b"]),
+font:pick(["Arial, Helvetica, sans-serif","Georgia, 'Times New Roman', serif","Verdana, Geneva, sans-serif","'Trebuchet MS', Arial, sans-serif"]),
+docStyle:(IDX+Math.floor(IDX/3))%3,layout:Math.floor(r()*2),radio:r()<0.5,intro:Math.floor(r()*3),
+perm:PERMS[IDX%2],
+lblSt:pick(["Stated rate (% per year)","Coupon rate (% per year)","Stated rate (% per year)"]),
+lblMk:pick(["Market rate on issue date (% per year)","Market rate on issue date (% per year)","Market rate on issue date (% per year)"]),
+order:[...shuf(["Face","St","Mk","Pr"]),"Fv"],docOrder:[shuf([0,1,2]),shuf([0,1]),shuf([0,1])]};
+}
+let D,E=null,S;
+const PL=["1 (December 31, Year 1)","2 (June 30, Year 2)","3 (December 31, Year 2)","4 (June 30, Year 3)"];
+const dl=a=>"<dl>"+a.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join("")+"</dl>";
+const m2=x=>x.toFixed(2);
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+document.addEventListener("visibilitychange",()=>{if(document.hidden){const d=$("doc");d.hidden=true;d.innerHTML=""}});
+function renderDoc(title,facts,order){
+const f=order.map(i=>facts[i]).concat(facts.slice(order.length));
+let h=`<h3>${cap(title)}</h3>`;
+if(S.docStyle===0)h+="<p>"+f.map(x=>`${x[0]}: <strong>${x[1]}</strong>`).join(". ")+".</p>";
+else if(S.docStyle===1)h+="<ul>"+f.map(x=>`<li>${x[0]}: <strong>${x[1]}</strong></li>`).join("")+"</ul>";
+else h+="<table><tbody>"+f.map(x=>`<tr><th scope="row">${x[0]}</th><td>${x[1]}</td></tr>`).join("")+"</tbody></table>";
+$("doc").innerHTML=h;$("doc").hidden=false;
+}
+$("go").onclick=()=>{D=ver($("vc").value);
+if(!D){$("startMsg").textContent="Code not recognized. Check your exercise question.";return}
+S=skin(D.code);
+const root=document.documentElement.style;root.setProperty("--primary",S.accent);
+document.body.style.fontFamily=S.font;
+$("h1").textContent="Investment Lab";$("ttl").textContent="Investment Lab";
+$("intro").textContent="On July 1, Year 1, "+S.co+" purchased a corporate bond. The bond pays interest every six months, on June 30 and December 31. "+S.co+" uses the effective interest method.";
+{const b={pro:$("bPro"),conf:$("bConf"),quote:$("bQuote")};S.perm.forEach(k=>$("btnRow").appendChild(b[k]))}
+const F={Face:["eFace","Face value ($)"],St:["eSt",S.lblSt],Mk:["eMk",S.lblMk],Pr:["ePr","Price paid ($)"],Fv:["eFv","Fair value at December 31, Year 1 ($)"]};
+$("fields").innerHTML=S.order.map(k=>`<div><label for="${F[k][0]}">${F[k][1]}</label><input id="${F[k][0]}" type="number" step="0.01"></div>`).join("");
+$("cols").classList.toggle("two",S.layout===1);
+$("start").hidden=true;$("work").hidden=false};
+$("bPro").onclick=()=>renderDoc("Bond prospectus",[["Issue","Corporate bond"],["Purchased","July 1, Year 1"],["Face value",money(D.face)],["Stated (coupon) rate",D.st+"% per year"],["Interest dates","June 30 and December 31 each year"]],[...S.docOrder[0].map(i=>[2,3,4][i]),0,1]);
+$("bConf").onclick=()=>{$("bQuote").disabled=false;$("qHint").hidden=true;renderDoc("Purchase confirmation",[["Settlement","July 1, Year 1"],["Amount paid",money(D.price)],["Market rate on issue date",D.mk+"% per year"]],[...S.docOrder[1].map(i=>[1,2][i]),0])};
+$("bQuote").onclick=()=>renderDoc("December 31 market quote",[["Fair value of the bond at December 31, Year 1",money(D.fv)],["Current market rate at December 31, Year 1",D.decoy+"% per year"],["Note","Quotes are informational and do not change the rate used to compute interest revenue."]],[...S.docOrder[2],2]);
+$("run").onclick=()=>{
+const v=["eFace","eSt","eMk","ePr","eFv"].map(id=>parseFloat($(id).value));
+if(v.some(x=>!isFinite(x))||v[0]<=0||v[3]<=0||v[2]<=0){$("runMsg").textContent="Enter all five facts as positive numbers.";return}
+$("runMsg").textContent="";
+E=engine(...v);
+$("oPd").textContent=E.disc;$("oAmt").textContent=money(E.amt);
+$("pBtns").innerHTML=E.rows.map((r,i)=>`<button type="button" class="alt" data-p="${i}" aria-pressed="false">Period ${i+1}</button>`).join("");
+$("oRows").innerHTML="";$("pWrap").hidden=true;
+$("oSeal").textContent=seal(...v);
+$("eng").hidden=false;
+$("doc").hidden=true;$("doc").innerHTML="";
+$("fields").hidden=true;$("run").hidden=true;$("factsBar").hidden=false;
+const fb=$("pBtns").querySelector("button");if(fb)fb.focus();
+};
+$("editFacts").onclick=()=>{$("fields").hidden=false;$("run").hidden=false;$("factsBar").hidden=true;$("eng").hidden=true;E=null;const f=$("fields").querySelector("input");if(f)f.focus()};
+$("pBtns").onclick=e=>{const b=e.target.closest("button");if(!b||!E)return;const i=+b.dataset.p,r=E.rows[i];
+document.querySelectorAll("#pBtns button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+$("oRows").innerHTML=`<tr><td>${PL[i]}</td><td class="n">${m2(r.cash)}</td><td class="n">${m2(r.int)}</td><td class="n">${m2(r.am)}</td><td class="n">${m2(r.end)}</td></tr>`;$("pWrap").hidden=false;$("pHint").hidden=true};
+</script></body></html>
