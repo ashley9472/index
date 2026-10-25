@@ -135,14 +135,14 @@ $("h1").textContent="Investment Lab";$("ttl").textContent="Investment Lab";
 $("intro").textContent="On July 1, Year 1, "+S.co+" purchased a corporate bond. The bond pays interest every six months, on June 30 and December 31. "+S.co+" uses the effective interest method.";
 {const b={pro:$("bPro"),conf:$("bConf"),quote:$("bQuote")};S.perm.forEach(k=>$("btnRow").appendChild(b[k]))}
 const F={Face:["eFace","Face value ($)"],St:["eSt",S.lblSt],Mk:["eMk",S.lblMk],Pr:["ePr","Price paid ($)"],Fv:["eFv","Fair value at December 31, Year 1 ($)"]};
-$("fields").innerHTML=S.order.map(k=>`<div><label for="${F[k][0]}">${F[k][1]}</label><input id="${F[k][0]}" type="number" step="0.01"></div>`).join("");
+$("fields").innerHTML=S.order.map(k=>`<div><label for="${F[k][0]}">${F[k][1]}</label><input id="${F[k][0]}" type="text" inputmode="decimal" autocomplete="off"></div>`).join("");
 $("cols").classList.toggle("two",S.layout===1);
 $("start").hidden=true;$("work").hidden=false};
 $("bPro").onclick=()=>renderDoc("Bond prospectus",[["Issue","Corporate bond"],["Purchased","July 1, Year 1"],["Face value",mon(D.face)],["Stated (coupon) rate",D.st+"% per year"],["Interest dates","June 30 and December 31 each year"]],[...S.docOrder[0].map(i=>[2,3,4][i]),0,1]);
 $("bConf").onclick=()=>{$("bQuote").disabled=false;$("qHint").hidden=true;renderDoc("Purchase confirmation",[["Settlement","July 1, Year 1"],["Amount paid",mon(D.price)],["Market rate on issue date",D.mk+"% per year"]],[...S.docOrder[1].map(i=>[1,2][i]),0])};
 $("bQuote").onclick=()=>renderDoc("December 31 market quote",[["Fair value of the bond at December 31, Year 1",mon(D.fv)],["Current market rate at December 31, Year 1",D.decoy+"% per year"],["Note","Quotes are informational and do not change the rate used to compute interest revenue."]],[...S.docOrder[2],2]);
 $("run").onclick=()=>{
-const v=["eFace","eSt","eMk","ePr","eFv"].map(id=>parseFloat($(id).value));
+const v=["eFace","eSt","eMk","ePr","eFv"].map(id=>parseFloat(String($(id).value).replace(/[$,%\s]/g,"")));
 if(v.some(x=>!isFinite(x))||v[0]<=0||v[3]<=0||v[2]<=0){$("runMsg").textContent="Enter all five facts as positive numbers.";return}
 $("runMsg").textContent="";
 E=engine(...v);
